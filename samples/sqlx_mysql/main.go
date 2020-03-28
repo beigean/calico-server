@@ -1,13 +1,16 @@
+// ref. https://qiita.com/rihofujino/items/b69e6a23e7cef1d692c4
 package main
 
 import (
+	"fmt"
 	"log"
 
-	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
+//引っ張ってきたデータを当てはめる構造体を用意。
+//その際、バッククオート（`）で、どのカラムと紐づけるのかを明示する。
 type User struct {
 	ID   int    `db:"id"`
 	Name string `db:"name"`
@@ -17,31 +20,19 @@ type User struct {
 type Userlist []User
 
 func main() {
-	r := gin.Default()
-	r.GET("/ping", sample)
-	r.GET("/todo", todo_get)
-	r.POST("/todo", todo_post)
-	r.PUT("/todo", todo_put)
-	r.DELETE("/todo", todo_delete)
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-}
 
-func sample(c *gin.Context) {
-	// log.Printf()
-	c.JSON(200, gin.H{
-		"message": "pong",
-	})
-}
-
-func todo_get(c *gin.Context) {
+	//Userデータ一件一件を格納する配列Userlistを、Userlist型で用意
 	var userlist Userlist
 
+	//Mysqlに接続。sql.Openの代わりにsqlx.Openを使う。
+	//ドライバ名、データソース名を引数に渡す
 	// dsn spec: "[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]"
 	db, err := sqlx.Open("mysql", "root:asn10026900@/calico")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//SELECTを実行。db.Queryの代わりにdb.Queryxを使う。
 	rows, err := db.Queryx("SELECT * FROM users")
 	if err != nil {
 		log.Fatal(err)
@@ -50,6 +41,7 @@ func todo_get(c *gin.Context) {
 	var user User
 	for rows.Next() {
 
+		//rows.Scanの代わりにrows.StructScanを使う
 		err := rows.StructScan(&user)
 		if err != nil {
 			log.Fatal(err)
@@ -57,23 +49,7 @@ func todo_get(c *gin.Context) {
 		userlist = append(userlist, user)
 	}
 
-	c.JSON(200, userlist)
-}
+	fmt.Println(userlist)
+	//[{1 yamada 25} {2 suzuki 28}]
 
-func todo_post(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "post dayo",
-	})
-}
-
-func todo_put(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "put dayo",
-	})
-}
-
-func todo_delete(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"message": "delete dayo",
-	})
 }
