@@ -1,11 +1,7 @@
 package main
 
 import (
-	"log"
-
 	"github.com/gin-gonic/gin"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
 )
 
 type User struct {
@@ -34,30 +30,9 @@ func sample(c *gin.Context) {
 }
 
 func todo_get(c *gin.Context) {
-	var userlist Userlist
-
-	// dsn spec: "[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]"
-	db, err := sqlx.Open("mysql", "root:asn10026900@/calico")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	rows, err := db.Queryx("SELECT * FROM users")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var user User
-	for rows.Next() {
-
-		err := rows.StructScan(&user)
-		if err != nil {
-			log.Fatal(err)
-		}
-		userlist = append(userlist, user)
-	}
-
-	c.JSON(200, userlist)
+	c.JSON(200, gin.H{
+		"message": "get dayo",
+	})
 }
 
 func todo_post(c *gin.Context) {
