@@ -9,9 +9,9 @@ import (
 )
 
 type User struct {
-	ID   int    `db:"id"`
-	Name string `db:"name"`
-	Age  int    `db:"age"`
+	ID   int    `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+	Age  int    `db:"age" json:"age"`
 }
 
 type Userlist []User
