@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
@@ -19,10 +20,10 @@ type Userlist []User
 func main() {
 	r := gin.Default()
 	r.GET("/ping", sample)
-	r.GET("/todo", todo_get)
+	r.GET("/todo/:id", todo_get)
 	r.POST("/todo", todo_post)
-	r.PUT("/todo", todo_put)
-	r.DELETE("/todo", todo_delete)
+	r.PUT("/todo/:id", todo_put)
+	r.DELETE("/todo/:id", todo_delete)
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
@@ -57,7 +58,8 @@ func todo_get(c *gin.Context) {
 		userlist = append(userlist, user)
 	}
 
-	c.JSON(200, userlist)
+	id, _ := strconv.Atoi(c.Param("id"))
+	c.JSON(200, userlist[id])
 }
 
 func todo_post(c *gin.Context) {
