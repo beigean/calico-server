@@ -21,6 +21,7 @@ func main() {
 	r := gin.Default()
 	r.GET("/ping", sample)
 	r.GET("/todo/:id", todo_get)
+	// r.GET("/todo", todo_get)
 	r.POST("/todo", todo_post)
 	r.PUT("/todo/:id", todo_put)
 	r.DELETE("/todo/:id", todo_delete)
