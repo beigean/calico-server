@@ -14,13 +14,13 @@ func (addr *IPAddr) String() string {
 }
 
 func main() {
-	var i fmt.Stringer
+	// var i fmt.Stringer
 	hosts := map[string]IPAddr{
 		"loopback":  {127, 0, 0, 1},
 		"googleDNS": {8, 8, 8, 8},
 	}
 	for name, ip := range hosts {
-		i = &ip
-		fmt.Printf("%v: %v\n", name, i.String())
+		// i = &ip
+		fmt.Printf("%v: %v\n", name, &ip)
 	}
 }
