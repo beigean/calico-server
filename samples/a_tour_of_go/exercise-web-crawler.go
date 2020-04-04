@@ -34,14 +34,14 @@ func Crawl(url string, depth int, fetcher Fetcher, cr *Crawler) {
 	}
 
 	body, urls, err := fetcher.Fetch(url)
+	cr.mux.Lock()
+	cr.res[url] = body
+	cr.mux.Unlock()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Printf("found: %s %q\n", url, body)
-	cr.mux.Lock()
-	cr.res[url] = body
-	cr.mux.Unlock()
 	for _, u := range urls {
 		cr.wg.Add(1)
 		go Crawl(u, depth-1, fetcher, cr)
