@@ -25,20 +25,12 @@ const dsn = "root:asn10026900@/calico"
 
 func main() {
 	r := gin.Default()
-	r.GET("/ping", sample)
 	r.GET("/todo/:id", todoGetByID)
 	r.GET("/todo", todoGet)
 	r.POST("/todo", todoPost)
 	r.PUT("/todo/:id", todoPut)
 	r.DELETE("/todo/:id", todoDelete)
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-}
-
-func sample(c *gin.Context) {
-	// log.Printf()
-	c.JSON(200, gin.H{
-		"message": "pong",
-	})
 }
 
 func todoGet(c *gin.Context) {
@@ -65,6 +57,7 @@ func todoGet(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, userlist)
+	return
 }
 
 func todoGetByID(c *gin.Context) {
@@ -87,6 +80,7 @@ func todoGetByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+	return
 }
 
 func todoPost(c *gin.Context) {
@@ -95,7 +89,6 @@ func todoPost(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(user)
 
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
@@ -109,16 +102,43 @@ func todoPost(c *gin.Context) {
 	}
 
 	// c.JSON(http.StatusOK, nil)
+	return
 }
 
 func todoPut(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "put dayo",
-	})
+	var user User
+	err := c.BindJSON(&user)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := sqlx.Open(kindDb, dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := db.Exec("UPDATE users SET name=?, age=? WHERE id=?", user.Name, user.Age, c.Param("id"))
+	fmt.Println(res)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// c.JSON(http.StatusOK, nil)
+	return
 }
 
 func todoDelete(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "delete dayo",
-	})
+	db, err := sqlx.Open(kindDb, dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := db.Exec("DELETE FROM users WHERE id=?", c.Param("id"))
+	fmt.Println(res)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// c.JSON(http.StatusOK, nil)
+	return
 }
