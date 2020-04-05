@@ -17,12 +17,6 @@ type userCols struct {
 
 type userlist []userCols
 
-const (
-	kindDb = "mysql"
-	// dsn spec: "[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]"
-	dsn = "root:asn10026900@/calico"
-)
-
 // UserGet : get users data list
 func UserGet(c *gin.Context) {
 	db, err := sqlx.Open(kindDb, dsn)

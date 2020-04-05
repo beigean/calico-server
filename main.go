@@ -14,5 +14,10 @@ func main() {
 	r.POST("/user", controller.UserPost)
 	r.PUT("/user/:id", controller.UserPut)
 	r.DELETE("/user/:id", controller.UserDelete)
+	r.GET("/todo/:id", controller.TodoGetByID)
+	r.GET("/todo", controller.TodoGet)
+	r.POST("/todo", controller.TodoPost)
+	r.PUT("/todo/:id", controller.TodoPut)
+	r.DELETE("/todo/:id", controller.TodoDelete)
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
