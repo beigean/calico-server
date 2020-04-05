@@ -106,12 +106,18 @@ func todoPost(c *gin.Context) {
 }
 
 func todoPut(c *gin.Context) {
+	var user User
+	err := c.BindJSON(&user)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("UPDATE FROM users WHERE id=? LIMIT 1", c.Param("id"))
+	res, err := db.Exec("UPDATE users SET name=?, age=? WHERE id=?", user.Name, user.Age, c.Param("id"))
 	fmt.Println(res)
 	if err != nil {
 		log.Fatal(err)
