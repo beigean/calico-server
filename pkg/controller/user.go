@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,19 +29,20 @@ func UserGet(c *gin.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer rows.Close()
 
-	var user userCols
-	var userlist userlist
+	var buf userCols
+	var buflist userlist
 	for rows.Next() {
 
-		err := rows.StructScan(&user)
+		err := rows.StructScan(&buf)
 		if err != nil {
 			log.Fatal(err)
 		}
-		userlist = append(userlist, user)
+		buflist = append(buflist, buf)
 	}
 
-	c.JSON(http.StatusOK, userlist)
+	c.JSON(http.StatusOK, buflist)
 	return
 }
 
@@ -51,20 +53,18 @@ func UserGetByID(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	rows, err := db.Queryx("SELECT * FROM users WHERE id=?", c.Param("id"))
-	if err != nil {
+	var buf userCols
+	err = db.QueryRowx("SELECT * FROM users WHERE id=?", c.Param("id")).StructScan(&buf)
+	if err == nil {
+		// pass
+	} else if err == sql.ErrNoRows {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid id."})
+		return
+	} else {
 		log.Fatal(err)
 	}
 
-	var user userCols
-	for rows.Next() {
-		err := rows.StructScan(&user)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, buf)
 	return
 }
 
