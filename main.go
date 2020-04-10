@@ -19,5 +19,5 @@ func main() {
 	r.POST("/todo", controller.TodoPost)
 	r.PUT("/todo/:id", controller.TodoPut)
 	r.DELETE("/todo/:id", controller.TodoDelete)
-	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	r.RunTLS("localhost:18443", "cert/server.crt", "cert/server.key")
 }
