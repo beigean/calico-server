@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/noobs9/calico-server/pkg/controller"
 
 	"github.com/gin-gonic/gin"
@@ -19,5 +21,9 @@ func main() {
 	r.POST("/todo", controller.TodoPost)
 	r.PUT("/todo/:id", controller.TodoPut)
 	r.DELETE("/todo/:id", controller.TodoDelete)
-	r.RunTLS("localhost:18443", "cert/server.crt", "cert/server.key")
+	err := r.Run("localhost:8080")
+	// err := r.RunTLS("localhost:18443", "cert/server.crt", "cert/server.key")
+	if err != nil {
+		log.Fatal("Run failed: ", err)
+	}
 }
