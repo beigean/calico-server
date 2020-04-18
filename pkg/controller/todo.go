@@ -2,11 +2,13 @@ package controller
 
 import (
 	"database/sql"
-	"fmt"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -19,7 +21,7 @@ type todoCols struct {
 type todolist []todoCols
 
 // TodoGet : get todos data list
-func TodoGet(c *gin.Context) {
+func TodoGet(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -41,36 +43,47 @@ func TodoGet(c *gin.Context) {
 		buflist = append(buflist, buf)
 	}
 
-	c.JSON(http.StatusOK, buflist)
-	return
+	json.NewEncoder(w).Encode(buflist)
 }
 
 // TodoGetByID : get todos data by id
-func TodoGetByID(c *gin.Context) {
+func TodoGetByID(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var buf todoCols
-	err = db.QueryRowx("SELECT * FROM todos WHERE id=?", c.Param("id")).StructScan(&buf)
+	err = db.QueryRowx("SELECT * FROM todos WHERE id=?", mux.Vars(r)["id"]).StructScan(&buf)
 	if err == nil {
 		// pass
 	} else if err == sql.ErrNoRows {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid id."})
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else {
 		log.Fatal(err)
 	}
 
-	c.JSON(http.StatusOK, buf)
-	return
+	json.NewEncoder(w).Encode(buf)
 }
 
 // TodoPost : post new data to todos table
-func TodoPost(c *gin.Context) {
+func TodoPost(w http.ResponseWriter, r *http.Request) {
+	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	body := make([]byte, len)
+	len, err = r.Body.Read(body)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	var buf todoCols
-	err := c.BindJSON(&buf)
+	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,20 +93,31 @@ func TodoPost(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("INSERT INTO todos (user_id, todo) VALUES (?,?)", buf.UserID, buf.Todo)
-	fmt.Println(res)
+	_, err = db.Exec("INSERT INTO todos (user_id, todo) VALUES (?,?)", buf.UserID, buf.Todo)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// c.JSON(http.StatusOK, nil)
-	return
+	w.WriteHeader(http.StatusOK)
 }
 
 // TodoPut : update todo data by id
-func TodoPut(c *gin.Context) {
+func TodoPut(w http.ResponseWriter, r *http.Request) {
+	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	body := make([]byte, len)
+	len, err = r.Body.Read(body)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	var buf todoCols
-	err := c.BindJSON(&buf)
+	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -103,29 +127,25 @@ func TodoPut(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("UPDATE todos SET user_id=?, todo=? WHERE id=?", buf.UserID, buf.Todo, c.Param("id"))
-	fmt.Println(res)
+	_, err = db.Exec("UPDATE todos SET user_id=?, todo=? WHERE id=?", buf.UserID, buf.Todo, mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// c.JSON(http.StatusOK, nil)
-	return
+	w.WriteHeader(http.StatusOK)
 }
 
 // TodoDelete : delete todo data by id
-func TodoDelete(c *gin.Context) {
+func TodoDelete(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("DELETE FROM todos WHERE id=?", c.Param("id"))
-	fmt.Println(res)
+	_, err = db.Exec("DELETE FROM todos WHERE id=?", mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// c.JSON(http.StatusOK, nil)
-	return
+	w.WriteHeader(http.StatusOK)
 }

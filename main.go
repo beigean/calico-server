@@ -2,28 +2,33 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/noobs9/calico-server/pkg/controller"
 
-	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
 )
 
 func main() {
-	r := gin.Default()
-	r.GET("/user/:id", controller.UserGetByID)
-	r.GET("/user", controller.UserGet)
-	r.POST("/user", controller.UserPost)
-	r.PUT("/user/:id", controller.UserPut)
-	r.DELETE("/user/:id", controller.UserDelete)
-	r.GET("/todo/:id", controller.TodoGetByID)
-	r.GET("/todo", controller.TodoGet)
-	r.POST("/todo", controller.TodoPost)
-	r.PUT("/todo/:id", controller.TodoPut)
-	r.DELETE("/todo/:id", controller.TodoDelete)
-	err := r.Run("localhost:8080")
-	// err := r.RunTLS("localhost:18443", "cert/server.crt", "cert/server.key")
+	r := mux.NewRouter()
+	r.HandleFunc("/user/{id}", controller.UserGetByID).Methods("GET")
+	r.HandleFunc("/user", controller.UserGet).Methods("GET")
+	r.HandleFunc("/user", controller.UserPost).Methods("POST")
+	r.HandleFunc("/user/{id}", controller.UserPut).Methods("PUT")
+	r.HandleFunc("/user/{id}", controller.UserDelete).Methods("DELETE")
+	r.HandleFunc("/todo/{id}", controller.TodoGetByID).Methods("GET")
+	r.HandleFunc("/todo", controller.TodoGet).Methods("GET")
+	r.HandleFunc("/todo", controller.TodoPost).Methods("POST")
+	r.HandleFunc("/todo/{id}", controller.TodoPut).Methods("PUT")
+	r.HandleFunc("/todo/{id}", controller.TodoDelete).Methods("DELETE")
+	r.HandleFunc("/ping", pingHandler)
+	err := http.ListenAndServe(":8080", r)
 	if err != nil {
-		log.Fatal("Run failed: ", err)
+		log.Fatal("ListenAndServe failed: ", err)
 	}
+}
+
+func pingHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("pong\n"))
 }
