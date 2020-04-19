@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/noobs9/calico-server/pkg/auth"
 	"github.com/noobs9/calico-server/pkg/controller"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -22,6 +23,10 @@ func main() {
 	r.HandleFunc("/todo", controller.TodoPost).Methods("POST")
 	r.HandleFunc("/todo/{id}", controller.TodoPut).Methods("PUT")
 	r.HandleFunc("/todo/{id}", controller.TodoDelete).Methods("DELETE")
+
+	r.HandleFunc("/auth", auth.GetTokenHandler).Methods("GET")
+	r.Handle("/auth/test", auth.JwtMiddleware.Handler(auth.AuthTest))
+
 	r.HandleFunc("/ping", pingHandler)
 	err := http.ListenAndServe(":8080", r)
 	if err != nil {
