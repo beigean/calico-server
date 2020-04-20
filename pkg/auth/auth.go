@@ -40,6 +40,7 @@ var JwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 	SigningMethod: jwt.SigningMethodHS256,
 })
 
+// AuthTest ...
 var AuthTest = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok!!\n"))
 })

@@ -21,7 +21,7 @@ type userCols struct {
 type userlist []userCols
 
 // UserGet : get users data list
-func UserGet(w http.ResponseWriter, r *http.Request) {
+var UserGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -45,10 +45,10 @@ func UserGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(buflist)
-}
+})
 
 // UserGetByID : get users data by id
-func UserGetByID(w http.ResponseWriter, r *http.Request) {
+var UserGetByID = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -66,10 +66,10 @@ func UserGetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(buf)
-}
+})
 
 // UserPost : post new data to users table
-func UserPost(w http.ResponseWriter, r *http.Request) {
+var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -101,10 +101,10 @@ func UserPost(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	return
-}
+})
 
 // UserPut : update user data by id
-func UserPut(w http.ResponseWriter, r *http.Request) {
+var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -135,10 +135,10 @@ func UserPut(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})
 
 // UserDelete : delete user data by id
-func UserDelete(w http.ResponseWriter, r *http.Request) {
+var UserDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -150,4 +150,4 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})

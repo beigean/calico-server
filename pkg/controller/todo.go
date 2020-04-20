@@ -21,7 +21,7 @@ type todoCols struct {
 type todolist []todoCols
 
 // TodoGet : get todos data list
-func TodoGet(w http.ResponseWriter, r *http.Request) {
+var TodoGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -44,10 +44,10 @@ func TodoGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(buflist)
-}
+})
 
 // TodoGetByID : get todos data by id
-func TodoGetByID(w http.ResponseWriter, r *http.Request) {
+var TodoGetByID = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -65,10 +65,10 @@ func TodoGetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(buf)
-}
+})
 
 // TodoPost : post new data to todos table
-func TodoPost(w http.ResponseWriter, r *http.Request) {
+var TodoPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -99,10 +99,10 @@ func TodoPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})
 
 // TodoPut : update todo data by id
-func TodoPut(w http.ResponseWriter, r *http.Request) {
+var TodoPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -133,10 +133,10 @@ func TodoPut(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})
 
 // TodoDelete : delete todo data by id
-func TodoDelete(w http.ResponseWriter, r *http.Request) {
+var TodoDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -148,4 +148,4 @@ func TodoDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})
