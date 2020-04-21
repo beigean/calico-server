@@ -13,9 +13,13 @@ import (
 )
 
 type userCols struct {
-	ID   int    `db:"id" json:"id"`
-	Name string `db:"name" json:"name"`
-	Age  int    `db:"age" json:"age"`
+	ID        int    `db:"id" json:"id"`
+	CreatedAt string `db:"created_at" json:"created_at"`
+	UpdatedAt string `db:"updated_at" json:"updated_at"`
+	Mail      string `db:"mail" json:"mail"`
+	Password  string `db:"password" json:"password"`
+	Name      string `db:"name" json:"name"`
+	Age       int    `db:"age" json:"age"`
 }
 
 type userlist []userCols
@@ -86,7 +90,18 @@ var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	var buf userCols
 	err = json.Unmarshal(body, &buf)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if buf.Mail == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if buf.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	db, err := sqlx.Open(kindDb, dsn)
@@ -94,7 +109,7 @@ var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO users (name, age) VALUES (?,?)", buf.Name, buf.Age)
+	_, err = db.Exec("INSERT INTO users (mail, password, name, age) VALUES (?,?,?,?)", buf.Mail, buf.Password, buf.Name, buf.Age)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -118,10 +133,20 @@ var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user userCols
-	err = json.Unmarshal(body, &user)
+	var buf userCols
+	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if buf.Mail == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if buf.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	db, err := sqlx.Open(kindDb, dsn)
@@ -129,7 +154,7 @@ var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("UPDATE users SET name=?, age=? WHERE id=?", user.Name, user.Age, mux.Vars(r)["id"])
+	_, err = db.Exec("UPDATE users SET mail=?, password=?, name=?, age=? WHERE id=?", buf.Mail, buf.Password, buf.Name, buf.Age, mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
