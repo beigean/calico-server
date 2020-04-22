@@ -22,7 +22,7 @@ type todolist []todoCols
 
 // TodoGet : get todos data list
 var TodoGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,7 +48,7 @@ var TodoGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 // TodoGetByID : get todos data by id
 var TodoGetByID = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +88,7 @@ var TodoPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -122,7 +122,7 @@ var TodoPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,7 +137,7 @@ var TodoPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 // TodoDelete : delete todo data by id
 var TodoDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -24,7 +24,7 @@ func main() {
 	r.Handle("/todo/{id}", controller.TodoPut).Methods("PUT")
 	r.Handle("/todo/{id}", controller.TodoDelete).Methods("DELETE")
 
-	r.HandleFunc("/auth", auth.GetTokenHandler).Methods("GET")
+	r.HandleFunc("/auth", auth.GetTokenHandler).Methods("POST")
 	r.Handle("/auth/test", auth.JwtMiddleware.Handler(auth.AuthTest))
 
 	r.HandleFunc("/ping", pingHandler)

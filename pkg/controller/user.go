@@ -12,7 +12,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type userCols struct {
+type UserCols struct {
 	ID        int    `db:"id" json:"id"`
 	CreatedAt string `db:"created_at" json:"created_at"`
 	UpdatedAt string `db:"updated_at" json:"updated_at"`
@@ -22,11 +22,11 @@ type userCols struct {
 	Age       int    `db:"age" json:"age"`
 }
 
-type userlist []userCols
+type userlist []UserCols
 
 // UserGet : get users data list
 var UserGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +37,7 @@ var UserGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var buf userCols
+	var buf UserCols
 	var buflist userlist
 	for rows.Next() {
 
@@ -53,12 +53,12 @@ var UserGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 // UserGetByID : get users data by id
 var UserGetByID = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var buf userCols
+	var buf UserCols
 	err = db.QueryRowx("SELECT * FROM users WHERE id=?", mux.Vars(r)["id"]).StructScan(&buf)
 	if err == nil {
 		// pass
@@ -87,7 +87,7 @@ var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf userCols
+	var buf UserCols
 	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -104,7 +104,7 @@ var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -133,7 +133,7 @@ var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf userCols
+	var buf UserCols
 	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		log.Fatal(err)
@@ -149,7 +149,7 @@ var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -164,7 +164,7 @@ var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 // UserDelete : delete user data by id
 var UserDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}

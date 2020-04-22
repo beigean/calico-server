@@ -26,7 +26,7 @@ func main() {
 
 	//Mysqlに接続。sql.Openの代わりにsqlx.Openを使う。
 	//ドライバ名、データソース名を引数に渡す
-	// dsn spec: "[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]"
+	// Dsn spec: "[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]"
 	db, err := sqlx.Open("mysql", "root:asn10026900@/calico")
 	if err != nil {
 		log.Fatal(err)
