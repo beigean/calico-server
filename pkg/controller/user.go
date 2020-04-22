@@ -12,17 +12,21 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type userCols struct {
-	ID   int    `db:"id" json:"id"`
-	Name string `db:"name" json:"name"`
-	Age  int    `db:"age" json:"age"`
+type UserCols struct {
+	ID        int    `db:"id" json:"id"`
+	CreatedAt string `db:"created_at" json:"created_at"`
+	UpdatedAt string `db:"updated_at" json:"updated_at"`
+	Mail      string `db:"mail" json:"mail"`
+	Password  string `db:"password" json:"password"`
+	Name      string `db:"name" json:"name"`
+	Age       int    `db:"age" json:"age"`
 }
 
-type userlist []userCols
+type userlist []UserCols
 
 // UserGet : get users data list
-func UserGet(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+var UserGet = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,7 +37,7 @@ func UserGet(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	var buf userCols
+	var buf UserCols
 	var buflist userlist
 	for rows.Next() {
 
@@ -45,16 +49,16 @@ func UserGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(buflist)
-}
+})
 
 // UserGetByID : get users data by id
-func UserGetByID(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+var UserGetByID = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var buf userCols
+	var buf UserCols
 	err = db.QueryRowx("SELECT * FROM users WHERE id=?", mux.Vars(r)["id"]).StructScan(&buf)
 	if err == nil {
 		// pass
@@ -66,10 +70,10 @@ func UserGetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(buf)
-}
+})
 
 // UserPost : post new data to users table
-func UserPost(w http.ResponseWriter, r *http.Request) {
+var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -83,28 +87,39 @@ func UserPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf userCols
+	var buf UserCols
 	err = json.Unmarshal(body, &buf)
 	if err != nil {
-		log.Fatal(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	db, err := sqlx.Open(kindDb, dsn)
+	if buf.Mail == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if buf.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO users (name, age) VALUES (?,?)", buf.Name, buf.Age)
+	_, err = db.Exec("INSERT INTO users (mail, password, name, age) VALUES (?,?,?,?)", buf.Mail, buf.Password, buf.Name, buf.Age)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	w.WriteHeader(http.StatusOK)
 	return
-}
+})
 
 // UserPut : update user data by id
-func UserPut(w http.ResponseWriter, r *http.Request) {
+var UserPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
 	if err != nil && err != io.EOF {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -118,28 +133,38 @@ func UserPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var user userCols
-	err = json.Unmarshal(body, &user)
+	var buf UserCols
+	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db, err := sqlx.Open(kindDb, dsn)
+	if buf.Mail == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if buf.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("UPDATE users SET name=?, age=? WHERE id=?", user.Name, user.Age, mux.Vars(r)["id"])
+	_, err = db.Exec("UPDATE users SET mail=?, password=?, name=?, age=? WHERE id=?", buf.Mail, buf.Password, buf.Name, buf.Age, mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})
 
 // UserDelete : delete user data by id
-func UserDelete(w http.ResponseWriter, r *http.Request) {
-	db, err := sqlx.Open(kindDb, dsn)
+var UserDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -150,4 +175,4 @@ func UserDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
+})

@@ -11,5 +11,6 @@ require (
 	github.com/gorilla/mux v1.7.4
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.3.0
+	golang.org/x/crypto v0.0.0-20200420201142-3c4aac89819a // indirect
 	golang.org/x/tour v0.0.0-20200201212631-8f38c9a8d074
 )
