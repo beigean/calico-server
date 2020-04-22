@@ -2,11 +2,13 @@ package controller
 
 import (
 	"database/sql"
-	"fmt"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -19,7 +21,7 @@ type userCols struct {
 type userlist []userCols
 
 // UserGet : get users data list
-func UserGet(c *gin.Context) {
+func UserGet(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -42,36 +44,47 @@ func UserGet(c *gin.Context) {
 		buflist = append(buflist, buf)
 	}
 
-	c.JSON(http.StatusOK, buflist)
-	return
+	json.NewEncoder(w).Encode(buflist)
 }
 
 // UserGetByID : get users data by id
-func UserGetByID(c *gin.Context) {
+func UserGetByID(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var buf userCols
-	err = db.QueryRowx("SELECT * FROM users WHERE id=?", c.Param("id")).StructScan(&buf)
+	err = db.QueryRowx("SELECT * FROM users WHERE id=?", mux.Vars(r)["id"]).StructScan(&buf)
 	if err == nil {
 		// pass
 	} else if err == sql.ErrNoRows {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid id."})
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	} else {
 		log.Fatal(err)
 	}
 
-	c.JSON(http.StatusOK, buf)
-	return
+	json.NewEncoder(w).Encode(buf)
 }
 
 // UserPost : post new data to users table
-func UserPost(c *gin.Context) {
-	var user userCols
-	err := c.BindJSON(&user)
+func UserPost(w http.ResponseWriter, r *http.Request) {
+	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	body := make([]byte, len)
+	len, err = r.Body.Read(body)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	var buf userCols
+	err = json.Unmarshal(body, &buf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,20 +94,32 @@ func UserPost(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("INSERT INTO users (name, age) VALUES (?,?)", user.Name, user.Age)
-	fmt.Println(res)
+	_, err = db.Exec("INSERT INTO users (name, age) VALUES (?,?)", buf.Name, buf.Age)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// c.JSON(http.StatusOK, nil)
+	w.WriteHeader(http.StatusOK)
 	return
 }
 
 // UserPut : update user data by id
-func UserPut(c *gin.Context) {
+func UserPut(w http.ResponseWriter, r *http.Request) {
+	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	body := make([]byte, len)
+	len, err = r.Body.Read(body)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	var user userCols
-	err := c.BindJSON(&user)
+	err = json.Unmarshal(body, &user)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -104,29 +129,25 @@ func UserPut(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("UPDATE users SET name=?, age=? WHERE id=?", user.Name, user.Age, c.Param("id"))
-	fmt.Println(res)
+	_, err = db.Exec("UPDATE users SET name=?, age=? WHERE id=?", user.Name, user.Age, mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// c.JSON(http.StatusOK, nil)
-	return
+	w.WriteHeader(http.StatusOK)
 }
 
 // UserDelete : delete user data by id
-func UserDelete(c *gin.Context) {
+func UserDelete(w http.ResponseWriter, r *http.Request) {
 	db, err := sqlx.Open(kindDb, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	res, err := db.Exec("DELETE FROM users WHERE id=?", c.Param("id"))
-	fmt.Println(res)
+	_, err = db.Exec("DELETE FROM users WHERE id=?", mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// c.JSON(http.StatusOK, nil)
-	return
+	w.WriteHeader(http.StatusOK)
 }
