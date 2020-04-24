@@ -1,3 +1,5 @@
+github.com/VividCortex/mysqlerr v0.0.0-20200408034417-3680c4030f59 h1:aYhNZfjE3PETROeQwtvkKYaVxtoc968BWa6RB7hTOdY=
+github.com/VividCortex/mysqlerr v0.0.0-20200408034417-3680c4030f59/go.mod h1:f3HiCrHjHBdcm6E83vGaXh1KomZMA2P6aeo3hKx/wg0=
 github.com/appleboy/gin-jwt/v2 v2.6.3 h1:aK4E3DjihWEBUTjEeRnGkA5nUkmwJPL1CPonMa2usRs=
 github.com/appleboy/gin-jwt/v2 v2.6.3/go.mod h1:MfPYA4ogzvOcVkRwAxT7quHOtQmVKDpTwxyUrC2DNw0=
 github.com/appleboy/gofight/v2 v2.1.2 h1:VOy3jow4vIK8BRQJoC/I9muxyYlJ2yb9ht2hZoS3rf4=
