@@ -15,6 +15,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/jmoiron/sqlx"
 	"github.com/noobs9/calico-server/pkg/controller"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type jwtToken struct {
@@ -36,39 +37,50 @@ func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf controller.UserCols
-	err = json.Unmarshal(body, &buf)
+	var bufReq controller.UserCols
+	err = json.Unmarshal(body, &bufReq)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if buf.Mail == "" {
+	if bufReq.Mail == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if buf.Password == "" {
+	if bufReq.Password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	var bufDB controller.UserCols
 	db, err := sqlx.Open(controller.KindDb, controller.Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = db.QueryRowx("SELECT * FROM users WHERE mail=? AND password=?", buf.Mail, buf.Password).StructScan(&buf)
+	err = db.QueryRowx("SELECT id, mail, password, name, created_at FROM users WHERE mail=?", bufReq.Mail).StructScan(&bufDB)
 	if err == nil {
 		// pass
 	} else if err == sql.ErrNoRows {
+		// email adress is not matched
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	} else {
 		log.Fatal(err)
 	}
 
-	// fmt.Println(buf)
+	err = bcrypt.CompareHashAndPassword([]byte(bufDB.Password), []byte(bufReq.Password))
+	if err == nil {
+		// pass
+	} else {
+		// password is not matched
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// fmt.Println(bufDB)
 
 	token := jwt.New(jwt.SigningMethodHS256)
 
@@ -84,10 +96,10 @@ func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
 	claims["exp"] = time.Now().Add(time.Minute).Unix()
 	// Private Claim
 	privatePrefix := "localhost"
-	claims[privatePrefix+"id"] = buf.ID
-	claims[privatePrefix+"mail"] = buf.Mail
-	claims[privatePrefix+"name"] = buf.Name
-	claims[privatePrefix+"created_at"] = buf.CreatedAt
+	claims[privatePrefix+"id"] = bufDB.ID
+	claims[privatePrefix+"mail"] = bufDB.Mail
+	claims[privatePrefix+"name"] = bufDB.Name
+	claims[privatePrefix+"created_at"] = bufDB.CreatedAt
 
 	var jsonToken jwtToken
 	jsonToken.Token, _ = token.SignedString([]byte(os.Getenv("SIGNINKEY")))

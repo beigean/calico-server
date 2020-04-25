@@ -4,7 +4,7 @@ CREATE TABLE users (
     created_at datetime  DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP,
     mail varchar(90) NOT NULL UNIQUE,
-    password varchar(255) NOT NULL,
+    password text NOT NULL,
     name varchar(20),
     age integer
 );

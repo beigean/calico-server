@@ -8,10 +8,14 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/VividCortex/mysqlerr"
+	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
+	"golang.org/x/crypto/bcrypt"
 )
 
+// UserCols ...
 type UserCols struct {
 	ID        int    `db:"id" json:"id"`
 	CreatedAt string `db:"created_at" json:"created_at"`
@@ -104,13 +108,24 @@ var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hash, err := bcrypt.GenerateFromPassword([]byte(buf.Password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO users (mail, password, name, age) VALUES (?,?,?,?)", buf.Mail, buf.Password, buf.Name, buf.Age)
+	_, err = db.Exec("INSERT INTO users (mail, password, name, age) VALUES (?,?,?,?)", buf.Mail, string(hash), buf.Name, buf.Age)
 	if err != nil {
+		if driverErr, ok := err.(*mysql.MySQLError); ok {
+			if driverErr.Number == mysqlerr.ER_DUP_ENTRY {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+		}
 		log.Fatal(err)
 	}
 
