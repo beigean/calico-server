@@ -4,11 +4,13 @@ package auth
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
@@ -20,6 +22,18 @@ import (
 
 type jwtToken struct {
 	Token string `json:"token"`
+}
+
+type priveteClaims struct {
+	UserID    int    `json:"calico/user-id"`
+	Mail      string `json:"calico/user-mail"`
+	Name      string `json:"calico/user-name"`
+	CreatedAt string `json:"calico/user-created_at"`
+}
+
+type myClaims struct {
+	priveteClaims
+	jwt.StandardClaims
 }
 
 // GetTokenHandler ...
@@ -80,26 +94,43 @@ func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Println(bufDB)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &myClaims{
+		priveteClaims{
+			// admmin?
+			UserID:    bufDB.ID,
+			Mail:      bufDB.Mail,
+			Name:      bufDB.Name,
+			CreatedAt: bufDB.CreatedAt,
+		},
+		jwt.StandardClaims{
+			Audience:  "localhost",
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			Id:        "test",
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "localhost",
+			NotBefore: time.Now().Add(time.Second * 5).Unix(),
+			Subject:   "AccessToken",
+		},
+	})
 
-	token := jwt.New(jwt.SigningMethodHS256)
+	// token := jwt.New(jwt.SigningMethodHS256)
 
-	claims := token.Claims.(jwt.MapClaims)
-	claims["admin"] = true
-	// Registerd Claim
-	claims["jti"] = "test"
-	claims["iss"] = "localhost"
-	claims["sub"] = "AccessToken"
-	claims["aud"] = []string{"localhost"}
-	claims["iat"] = time.Now()
-	claims["npf"] = time.Now().Add(time.Second * 5).Unix()
-	claims["exp"] = time.Now().Add(time.Minute).Unix()
-	// Private Claim
-	privatePrefix := "localhost"
-	claims[privatePrefix+"id"] = bufDB.ID
-	claims[privatePrefix+"mail"] = bufDB.Mail
-	claims[privatePrefix+"name"] = bufDB.Name
-	claims[privatePrefix+"created_at"] = bufDB.CreatedAt
+	// claims := token.Claims.(jwt.MapClaims)
+	// claims["admin"] = true
+	// // Registerd Claim
+	// claims["jti"] = "test"
+	// claims["iss"] = "localhost"
+	// claims["sub"] = "AccessToken"
+	// claims["aud"] = []string{"localhost"}
+	// claims["iat"] = time.Now()
+	// claims["npf"] = time.Now().Add(time.Second * 5).Unix()
+	// claims["exp"] = time.Now().Add(time.Hour).Unix()
+	// // Private Claim
+	// privatePrefix := "localhost/users-"
+	// claims[privatePrefix+"id"] = bufDB.ID
+	// claims[privatePrefix+"mail"] = bufDB.Mail
+	// claims[privatePrefix+"name"] = bufDB.Name
+	// claims[privatePrefix+"created_at"] = bufDB.CreatedAt
 
 	var jsonToken jwtToken
 	jsonToken.Token, _ = token.SignedString([]byte(os.Getenv("SIGNINKEY")))
@@ -117,5 +148,15 @@ var JwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 
 // AuthTest ...
 var AuthTest = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("ok!!\n"))
+	headerAuthorization := strings.Split(r.Header.Get("Authorization"), " ")
+
+	// check "Bearer"
+
+	var claims myClaims
+	token, _ := jwt.ParseWithClaims(headerAuthorization[1], &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("SIGNINKEY")), nil
+	})
+	fmt.Println(token.Valid)
+
+	json.NewEncoder(w).Encode(claims)
 })

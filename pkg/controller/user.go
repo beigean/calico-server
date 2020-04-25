@@ -18,12 +18,12 @@ import (
 // UserCols ...
 type UserCols struct {
 	ID        int    `db:"id" json:"id"`
-	CreatedAt string `db:"created_at" json:"created_at"`
-	UpdatedAt string `db:"updated_at" json:"updated_at"`
 	Mail      string `db:"mail" json:"mail"`
 	Password  string `db:"password" json:"password"`
-	Name      string `db:"name" json:"name"`
-	Age       int    `db:"age" json:"age"`
+	CreatedAt string `db:"created_at" json:"created_at,omitempty"`
+	UpdatedAt string `db:"updated_at" json:"updated_at,omitempty"`
+	Name      string `db:"name" json:"name,omitempty"`
+	Age       int    `db:"age" json:"age,omitempty"`
 }
 
 type userlist []UserCols
