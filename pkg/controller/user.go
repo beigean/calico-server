@@ -15,6 +15,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// UserCols ...
 type UserCols struct {
 	ID        int    `db:"id" json:"id"`
 	CreatedAt string `db:"created_at" json:"created_at"`
@@ -117,7 +118,7 @@ var UserPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO users (mail, password, name, age) VALUES (?,?,?,?)", buf.Mail, hash, buf.Name, buf.Age)
+	_, err = db.Exec("INSERT INTO users (mail, password, name, age) VALUES (?,?,?,?)", buf.Mail, string(hash), buf.Name, buf.Age)
 	if err != nil {
 		if driverErr, ok := err.(*mysql.MySQLError); ok {
 			if driverErr.Number == mysqlerr.ER_DUP_ENTRY {
