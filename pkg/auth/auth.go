@@ -15,6 +15,7 @@ import (
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/noobs9/calico-server/pkg/controller"
 	"golang.org/x/crypto/bcrypt"
@@ -113,25 +114,6 @@ func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
-	// token := jwt.New(jwt.SigningMethodHS256)
-
-	// claims := token.Claims.(jwt.MapClaims)
-	// claims["admin"] = true
-	// // Registerd Claim
-	// claims["jti"] = "test"
-	// claims["iss"] = "localhost"
-	// claims["sub"] = "AccessToken"
-	// claims["aud"] = []string{"localhost"}
-	// claims["iat"] = time.Now()
-	// claims["npf"] = time.Now().Add(time.Second * 5).Unix()
-	// claims["exp"] = time.Now().Add(time.Hour).Unix()
-	// // Private Claim
-	// privatePrefix := "localhost/users-"
-	// claims[privatePrefix+"id"] = bufDB.ID
-	// claims[privatePrefix+"mail"] = bufDB.Mail
-	// claims[privatePrefix+"name"] = bufDB.Name
-	// claims[privatePrefix+"created_at"] = bufDB.CreatedAt
-
 	var jsonToken jwtToken
 	jsonToken.Token, _ = token.SignedString([]byte(os.Getenv("SIGNINKEY")))
 
@@ -145,6 +127,31 @@ var JwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 	},
 	SigningMethod: jwt.SigningMethodHS256,
 })
+
+// OnlyPersonMiddleware ...
+func OnlyPersonMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		jsonString, err := jwtmiddleware.FromAuthHeader(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var claims myClaims
+		_, err = jwt.ParseWithClaims(jsonString, &claims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(os.Getenv("SIGNINKEY")), nil
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if reqUserID, _ := strconv.Atoi(mux.Vars(r)["id"]); reqUserID != claims.UserID {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
 
 // AuthTest ...
 var AuthTest = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -13,11 +13,11 @@ import (
 
 func main() {
 	r := mux.NewRouter()
-	r.Handle("/user/{id}", controller.UserGetByID).Methods("GET")
-	r.Handle("/user", controller.UserGet).Methods("GET")
+	r.Handle("/user/{id}", auth.JwtMiddleware.Handler(controller.UserGetByID)).Methods("GET")
+	r.Handle("/user", auth.JwtMiddleware.Handler(controller.UserGet)).Methods("GET")
 	r.Handle("/user", controller.UserPost).Methods("POST")
-	r.Handle("/user/{id}", controller.UserPut).Methods("PUT")
-	r.Handle("/user/{id}", controller.UserDelete).Methods("DELETE")
+	r.Handle("/user/{id}", auth.JwtMiddleware.Handler(auth.OnlyPersonMiddleware(controller.UserPut))).Methods("PUT")
+	r.Handle("/user/{id}", auth.JwtMiddleware.Handler(auth.OnlyPersonMiddleware(controller.UserDelete))).Methods("DELETE")
 	r.Handle("/todo/{id}", controller.TodoGetByID).Methods("GET")
 	r.Handle("/todo", controller.TodoGet).Methods("GET")
 	r.Handle("/todo", controller.TodoPost).Methods("POST")
