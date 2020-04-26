@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
+	"github.com/noobs9/calico-server/pkg/auth"
 )
 
 type todoCols struct {
@@ -88,12 +90,18 @@ var TodoPost = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	var claims auth.MyClaims
+	err = claims.GetFromTokenString(strings.Split(r.Header.Get("Authorization"), " ")[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("INSERT INTO todos (user_id, todo) VALUES (?,?)", buf.UserID, buf.Todo)
+	_, err = db.Exec("INSERT INTO todos (user_id, todo) VALUES (?,?)", claims.UserID, buf.Todo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -122,12 +130,34 @@ var TodoPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 
+	var claims auth.MyClaims
+	err = claims.GetFromTokenString(strings.Split(r.Header.Get("Authorization"), " ")[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec("UPDATE todos SET user_id=?, todo=? WHERE id=?", buf.UserID, buf.Todo, mux.Vars(r)["id"])
+	var bufDB todoCols
+	err = db.QueryRowx("SELECT * FROM todos WHERE id=?", mux.Vars(r)["id"]).StructScan(&bufDB)
+	if err == nil {
+		// pass
+	} else if err == sql.ErrNoRows {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else {
+		log.Fatal(err)
+	}
+
+	if claims.UserID != bufDB.UserID {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	_, err = db.Exec("UPDATE todos SET user_id=?, todo=? WHERE id=?", claims.UserID, buf.Todo, mux.Vars(r)["id"])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,9 +167,31 @@ var TodoPut = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 // TodoDelete : delete todo data by id
 var TodoDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var claims auth.MyClaims
+	err := claims.GetFromTokenString(strings.Split(r.Header.Get("Authorization"), " ")[1])
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	db, err := sqlx.Open(KindDb, Dsn)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	var bufDB todoCols
+	err = db.QueryRowx("SELECT * FROM todos WHERE id=?", mux.Vars(r)["id"]).StructScan(&bufDB)
+	if err == nil {
+		// pass
+	} else if err == sql.ErrNoRows {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else {
+		log.Fatal(err)
+	}
+
+	if claims.UserID != bufDB.UserID {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
 	}
 
 	_, err = db.Exec("DELETE FROM todos WHERE id=?", mux.Vars(r)["id"])

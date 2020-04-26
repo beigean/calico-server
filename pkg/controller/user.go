@@ -12,6 +12,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
+	"github.com/noobs9/calico-server/pkg/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -191,3 +192,73 @@ var UserDelete = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 })
+
+// GetTokenHandler ...
+func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
+	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	body := make([]byte, len)
+	len, err = r.Body.Read(body)
+	if err != nil && err != io.EOF {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	var bufReq UserCols
+	err = json.Unmarshal(body, &bufReq)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if bufReq.Mail == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if bufReq.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var bufDB UserCols
+	db, err := sqlx.Open(KindDb, Dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = db.QueryRowx("SELECT id, mail, password, name, created_at FROM users WHERE mail=?", bufReq.Mail).StructScan(&bufDB)
+	if err == nil {
+		// pass
+	} else if err == sql.ErrNoRows {
+		// email adress is not matched
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	} else {
+		log.Fatal(err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(bufDB.Password), []byte(bufReq.Password))
+	if err == nil {
+		// pass
+	} else {
+		// password is not matched
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	privateClaims := auth.PrivateClaims{
+		UserID:    bufDB.ID,
+		Mail:      bufDB.Mail,
+		Name:      bufDB.Name,
+		CreatedAt: bufDB.CreatedAt,
+	}
+
+	jsonToken := auth.CreateJwt(&privateClaims)
+
+	json.NewEncoder(w).Encode(jsonToken)
+}
