@@ -13,18 +13,18 @@ import (
 
 func main() {
 	r := mux.NewRouter()
-	r.Handle("/user/{id}", controller.UserGetByID).Methods("GET")
-	r.Handle("/user", controller.UserGet).Methods("GET")
+	r.Handle("/user/{id}", auth.JwtMiddleware.Handler(controller.UserGetByID)).Methods("GET")
+	r.Handle("/user", auth.JwtMiddleware.Handler(controller.UserGet)).Methods("GET")
 	r.Handle("/user", controller.UserPost).Methods("POST")
-	r.Handle("/user/{id}", controller.UserPut).Methods("PUT")
-	r.Handle("/user/{id}", controller.UserDelete).Methods("DELETE")
-	r.Handle("/todo/{id}", controller.TodoGetByID).Methods("GET")
-	r.Handle("/todo", controller.TodoGet).Methods("GET")
-	r.Handle("/todo", controller.TodoPost).Methods("POST")
-	r.Handle("/todo/{id}", controller.TodoPut).Methods("PUT")
-	r.Handle("/todo/{id}", controller.TodoDelete).Methods("DELETE")
+	r.Handle("/user/{id}", auth.JwtMiddleware.Handler(auth.OnlyPersonMiddleware(controller.UserPut))).Methods("PUT")
+	r.Handle("/user/{id}", auth.JwtMiddleware.Handler(auth.OnlyPersonMiddleware(controller.UserDelete))).Methods("DELETE")
+	r.Handle("/todo/{id}", auth.JwtMiddleware.Handler(controller.TodoGetByID)).Methods("GET")
+	r.Handle("/todo", auth.JwtMiddleware.Handler(controller.TodoGet)).Methods("GET")
+	r.Handle("/todo", auth.JwtMiddleware.Handler(controller.TodoPost)).Methods("POST")
+	r.Handle("/todo/{id}", auth.JwtMiddleware.Handler(controller.TodoPut)).Methods("PUT")
+	r.Handle("/todo/{id}", auth.JwtMiddleware.Handler(controller.TodoDelete)).Methods("DELETE")
 
-	r.HandleFunc("/auth", auth.GetTokenHandler).Methods("POST")
+	r.HandleFunc("/auth", controller.GetTokenHandler).Methods("POST")
 	r.Handle("/auth/test", auth.JwtMiddleware.Handler(auth.AuthTest))
 
 	r.HandleFunc("/ping", pingHandler)

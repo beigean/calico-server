@@ -2,120 +2,117 @@
 package auth
 
 import (
-	"database/sql"
 	"encoding/json"
-	"io"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/jmoiron/sqlx"
-	"github.com/noobs9/calico-server/pkg/controller"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/gorilla/mux"
 )
 
-type jwtToken struct {
+type JwtToken struct {
 	Token string `json:"token"`
 }
 
+type PrivateClaims struct {
+	UserID    int    `json:"calico/user-id"`
+	Mail      string `json:"calico/user-mail"`
+	Name      string `json:"calico/user-name"`
+	CreatedAt string `json:"calico/user-created_at"`
+}
+
+// MyClaims ...
+type MyClaims struct {
+	PrivateClaims
+	jwt.StandardClaims
+}
+
 // GetTokenHandler ...
-func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
-	len, err := strconv.Atoi(r.Header.Get("Content-Length"))
-	if err != nil && err != io.EOF {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+func (privateClaims *PrivateClaims) CreateJwt() *JwtToken {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &MyClaims{
+		*privateClaims,
+		jwt.StandardClaims{
+			Audience:  "localhost",
+			ExpiresAt: time.Now().Add(time.Hour).Unix(),
+			Id:        "test",
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "localhost",
+			NotBefore: time.Now().Add(time.Second * 5).Unix(),
+			Subject:   "AccessToken",
+		},
+	})
 
-	body := make([]byte, len)
-	len, err = r.Body.Read(body)
-	if err != nil && err != io.EOF {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	var jsonToken JwtToken
+	jsonToken.Token, _ = token.SignedString(getSecretKey())
 
-	var bufReq controller.UserCols
-	err = json.Unmarshal(body, &bufReq)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if bufReq.Mail == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if bufReq.Password == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	var bufDB controller.UserCols
-	db, err := sqlx.Open(controller.KindDb, controller.Dsn)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = db.QueryRowx("SELECT id, mail, password, name, created_at FROM users WHERE mail=?", bufReq.Mail).StructScan(&bufDB)
-	if err == nil {
-		// pass
-	} else if err == sql.ErrNoRows {
-		// email adress is not matched
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	} else {
-		log.Fatal(err)
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(bufDB.Password), []byte(bufReq.Password))
-	if err == nil {
-		// pass
-	} else {
-		// password is not matched
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// fmt.Println(bufDB)
-
-	token := jwt.New(jwt.SigningMethodHS256)
-
-	claims := token.Claims.(jwt.MapClaims)
-	claims["admin"] = true
-	// Registerd Claim
-	claims["jti"] = "test"
-	claims["iss"] = "localhost"
-	claims["sub"] = "AccessToken"
-	claims["aud"] = []string{"localhost"}
-	claims["iat"] = time.Now()
-	claims["npf"] = time.Now().Add(time.Second * 5).Unix()
-	claims["exp"] = time.Now().Add(time.Minute).Unix()
-	// Private Claim
-	privatePrefix := "localhost"
-	claims[privatePrefix+"id"] = bufDB.ID
-	claims[privatePrefix+"mail"] = bufDB.Mail
-	claims[privatePrefix+"name"] = bufDB.Name
-	claims[privatePrefix+"created_at"] = bufDB.CreatedAt
-
-	var jsonToken jwtToken
-	jsonToken.Token, _ = token.SignedString([]byte(os.Getenv("SIGNINKEY")))
-
-	json.NewEncoder(w).Encode(jsonToken)
+	return &jsonToken
 }
 
 // JwtMiddleware ...
 var JwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 	ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("SIGNINKEY")), nil
+		return getSecretKey(), nil
 	},
 	SigningMethod: jwt.SigningMethodHS256,
 })
 
+// OnlyPersonMiddleware ...
+func OnlyPersonMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tokenString, err := jwtmiddleware.FromAuthHeader(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var claims MyClaims
+		err = claims.GetFromTokenString(tokenString)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if reqUserID, _ := strconv.Atoi(mux.Vars(r)["id"]); reqUserID != claims.UserID {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+func getSecretKey() []byte {
+	return []byte(os.Getenv("SIGNINKEY"))
+}
+
+// GetFromTokenString ...
+func (c *MyClaims) GetFromTokenString(tokenString string) error {
+	var claims MyClaims
+	_, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		return getSecretKey(), nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	c = &claims
+	return nil
+}
+
 // AuthTest ...
 var AuthTest = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("ok!!\n"))
+	headerAuthorization := strings.Split(r.Header.Get("Authorization"), " ")
+
+	// check "Bearer"
+
+	var claims MyClaims
+	token, _ := jwt.ParseWithClaims(headerAuthorization[1], &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("SIGNINKEY")), nil
+	})
+	fmt.Println(token.Valid)
+
+	json.NewEncoder(w).Encode(claims)
 })
