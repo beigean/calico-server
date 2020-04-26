@@ -34,7 +34,7 @@ type MyClaims struct {
 }
 
 // GetTokenHandler ...
-func CreateJwt(privateClaims *PrivateClaims) *JwtToken {
+func (privateClaims *PrivateClaims) CreateJwt() *JwtToken {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &MyClaims{
 		*privateClaims,
 		jwt.StandardClaims{

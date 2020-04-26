@@ -258,7 +258,7 @@ func GetTokenHandler(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: bufDB.CreatedAt,
 	}
 
-	jsonToken := auth.CreateJwt(&privateClaims)
+	jsonToken := privateClaims.CreateJwt()
 
-	json.NewEncoder(w).Encode(jsonToken)
+	json.NewEncoder(w).Encode(*jsonToken)
 }
